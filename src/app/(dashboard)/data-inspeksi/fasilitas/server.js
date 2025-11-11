@@ -1,7 +1,34 @@
 'use server'
 
+// Next Imports
+import { cookies } from 'next/headers'
+
 const DEFAULT_PAGE = 1
 const DEFAULT_LIMIT = 20
+
+const getSessionToken = () => {
+  try {
+    const cookieStore = cookies()
+    const sessionCookie = cookieStore.get('authSession') ?? cookieStore.get('session')
+
+    if (!sessionCookie?.value) {
+      return null
+    }
+
+    try {
+      const parsed = JSON.parse(sessionCookie.value)
+
+      return parsed?.token ?? null
+    } catch (error) {
+      // Jika cookie tidak berbentuk JSON, gunakan nilai mentah sebagai token
+      return sessionCookie.value
+    }
+  } catch (error) {
+    console.error('Gagal membaca token dari session:', error)
+
+    return null
+  }
+}
 
 const buildQueryString = params => {
   const query = new URLSearchParams()
@@ -56,10 +83,13 @@ export async function fetchDataFasilitas(params = {}) {
   const url = `${baseUrl}/api/data/fasilitas${queryString ? `?${queryString}` : ''}`
 
   try {
+    const token = getSessionToken()
+
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
       },
       credentials: 'include'
     })
