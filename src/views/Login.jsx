@@ -32,6 +32,9 @@ import themeConfig from '@configs/themeConfig'
 import { useImageVariant } from '@core/hooks/useImageVariant'
 import { useSettings } from '@core/hooks/useSettings'
 
+// Utils Imports
+import getUniqueValues from '@/utils/getUniqueValues'
+
 // Styled Custom Components
 const LoginIllustration = styled('img')(({ theme }) => ({
   zIndex: 2,
@@ -59,6 +62,9 @@ const MaskImg = styled('img')({
 const LoginV2 = ({ mode }) => {
   // States
   const [isPasswordShown, setIsPasswordShown] = useState(false)
+  const [credentials, setCredentials] = useState({ username: '', password: '' })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
 
   // Vars
   const darkImg = '/images/pages/auth-mask-dark.png'
@@ -84,6 +90,70 @@ const LoginV2 = ({ mode }) => {
   )
 
   const handleClickShowPassword = () => setIsPasswordShown(show => !show)
+
+  const handleChange = event => {
+    const { name, value } = event.target
+
+    setCredentials(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
+  const handleSubmit = async event => {
+    event.preventDefault()
+
+    if (isSubmitting) {
+      return
+    }
+
+    setIsSubmitting(true)
+    setErrorMessage('')
+
+    try {
+      const response = await fetch('http://infara-backend.test/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: credentials.username,
+          password: credentials.password
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Unable to reach authentication service')
+      }
+
+      const json = await response.json()
+
+      if (json?.status !== 200 || !json?.response?.token) {
+        throw new Error(json?.keterangan || 'Login failed. Please try again.')
+      }
+
+      const user = json.response
+      const accessLevels = getUniqueValues(user?.akses_inspeksi, 'nama')
+
+      const session = {
+        token: user.token,
+        expired_token: user.expired_token ?? Date.now(),
+        level: accessLevels
+      }
+
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('authToken', session.token)
+        window.localStorage.setItem('authTokenExpiry', String(session.expired_token))
+        window.localStorage.setItem('authAccessLevels', JSON.stringify(session.level))
+        window.localStorage.setItem('authSession', JSON.stringify(session))
+        window.localStorage.setItem('authUser', JSON.stringify({ ...user, level: accessLevels }))
+      }
+
+      router.push('/')
+    } catch (error) {
+      setErrorMessage(error.message)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <div className='flex bs-full justify-center'>
@@ -113,22 +183,25 @@ const LoginV2 = ({ mode }) => {
             <Typography variant='h4'>{`Welcome to ${themeConfig.templateName}! 👋🏻`}</Typography>
             <Typography>Please sign-in to your account and start the adventure</Typography>
           </div>
-          <form
-            noValidate
-            autoComplete='off'
-            onSubmit={e => {
-              e.preventDefault()
-              router.push('/')
-            }}
-            className='flex flex-col gap-5'
-          >
-            <CustomTextField autoFocus fullWidth label='Email or Username' placeholder='Enter your email or username' />
+          <form noValidate autoComplete='off' onSubmit={handleSubmit} className='flex flex-col gap-5'>
+            <CustomTextField
+              autoFocus
+              fullWidth
+              name='username'
+              label='Email or Username'
+              placeholder='Enter your email or username'
+              value={credentials.username}
+              onChange={handleChange}
+            />
             <CustomTextField
               fullWidth
+              name='password'
               label='Password'
               placeholder='············'
               id='outlined-adornment-password'
               type={isPasswordShown ? 'text' : 'password'}
+              value={credentials.password}
+              onChange={handleChange}
               slotProps={{
                 input: {
                   endAdornment: (
@@ -147,8 +220,11 @@ const LoginV2 = ({ mode }) => {
                 Forgot password?
               </Typography>
             </div>
-            <Button fullWidth variant='contained' type='submit'>
-              Login
+            {errorMessage ? (
+              <Typography color='error.main'>{errorMessage}</Typography>
+            ) : null}
+            <Button fullWidth variant='contained' type='submit' disabled={isSubmitting}>
+              {isSubmitting ? 'Logging in…' : 'Login'}
             </Button>
             <div className='flex justify-center items-center flex-wrap gap-2'>
               <Typography>New on our platform?</Typography>
