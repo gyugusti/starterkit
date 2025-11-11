@@ -1,10 +1,12 @@
 'use client'
 
 // React Imports
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 // Next Imports
 import { useRouter } from 'next/navigation'
+
+import { signIn, useSession } from 'next-auth/react'
 
 // MUI Imports
 import useMediaQuery from '@mui/material/useMediaQuery'
@@ -31,9 +33,6 @@ import themeConfig from '@configs/themeConfig'
 // Hook Imports
 import { useImageVariant } from '@core/hooks/useImageVariant'
 import { useSettings } from '@core/hooks/useSettings'
-
-// Utils Imports
-import getUniqueValues from '@/utils/getUniqueValues'
 
 // Styled Custom Components
 const LoginIllustration = styled('img')(({ theme }) => ({
@@ -76,6 +75,7 @@ const LoginV2 = ({ mode }) => {
 
   // Hooks
   const router = useRouter()
+  const { status } = useSession()
   const { settings } = useSettings()
   const theme = useTheme()
   const hidden = useMediaQuery(theme.breakpoints.down('md'))
@@ -88,6 +88,12 @@ const LoginV2 = ({ mode }) => {
     borderedLightIllustration,
     borderedDarkIllustration
   )
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      router.replace('/')
+    }
+  }, [router, status])
 
   const handleClickShowPassword = () => setIsPasswordShown(show => !show)
 
@@ -111,45 +117,32 @@ const LoginV2 = ({ mode }) => {
     setErrorMessage('')
 
     try {
-      const response = await fetch('http://infara-backend.test/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: credentials.username,
-          password: credentials.password
-        })
+      const result = await signIn('credentials', {
+        redirect: false,
+        username: credentials.username,
+        password: credentials.password,
+        callbackUrl: '/'
       })
 
-      if (!response.ok) {
+      if (!result) {
         throw new Error('Unable to reach authentication service')
       }
 
-      const json = await response.json()
+      if (result.error) {
+        const message =
+          result.error === 'CredentialsSignin'
+            ? 'Invalid username or password'
+            : result.error
 
-      if (json?.status !== 200 || !json?.response?.token) {
-        throw new Error(json?.keterangan || 'Login failed. Please try again.')
+        throw new Error(message)
       }
 
-      const user = json.response
-      const accessLevels = getUniqueValues(user?.akses_inspeksi, 'nama')
+      const destination = result.url || '/'
 
-      const session = {
-        token: user.token,
-        expired_token: user.expired_token ?? Date.now(),
-        level: accessLevels
-      }
-
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem('authToken', session.token)
-        window.localStorage.setItem('authTokenExpiry', String(session.expired_token))
-        window.localStorage.setItem('authAccessLevels', JSON.stringify(session.level))
-        window.localStorage.setItem('authSession', JSON.stringify(session))
-        window.localStorage.setItem('authUser', JSON.stringify({ ...user, level: accessLevels }))
-      }
-
-      router.push('/')
+      router.push(destination)
+      router.refresh()
     } catch (error) {
-      setErrorMessage(error.message)
+      setErrorMessage(error?.message || 'Login failed. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
