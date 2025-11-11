@@ -1,9 +1,13 @@
 'use client'
 
 import React from 'react'
+
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+
+import Alert from '@mui/material/Alert'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
+import Pagination from '@mui/material/Pagination'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
@@ -11,11 +15,10 @@ import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Typography from '@mui/material/Typography'
-import Pagination from '@mui/material/Pagination'
 
 import { alamatPusat } from '@/utils/balishelper'
 
-const FasilitasTable = ({ data, currentPage, perPage, totalPages }) => {
+const FasilitasTable = ({ data, currentPage, perPage, totalPages, errorMessage }) => {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -42,6 +45,12 @@ const FasilitasTable = ({ data, currentPage, perPage, totalPages }) => {
   return (
     <Card>
       <CardContent>
+        {errorMessage ? (
+          <Alert severity='error' sx={{ mb: 4 }}>
+            {errorMessage}
+          </Alert>
+        ) : null}
+
         <TableContainer>
           <Table sx={{ minWidth: 650 }} aria-label='tabel data fasilitas'>
             <TableHead>

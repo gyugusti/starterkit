@@ -14,6 +14,32 @@ const buildQueryString = params => {
   return query.toString()
 }
 
+const parseServerError = async response => {
+  try {
+    const contentType = response.headers.get('content-type')
+
+    if (contentType?.includes('application/json')) {
+      const body = await response.json()
+
+      return (
+        body?.message ||
+        body?.error ||
+        body?.response?.message ||
+        body?.response?.error ||
+        JSON.stringify(body)
+      )
+    }
+
+    const textBody = await response.text()
+
+    return textBody || 'Tidak ada detail kesalahan yang diberikan oleh server API.'
+  } catch (error) {
+    console.error('Gagal membaca respons error dari server API:', error)
+
+    return 'Tidak dapat membaca detail kesalahan dari server API.'
+  }
+}
+
 export async function fetchDataFasilitas(params = {}) {
   const searchParams = {
     page: params.page || DEFAULT_PAGE,
@@ -27,7 +53,8 @@ export async function fetchDataFasilitas(params = {}) {
     current_page: searchParams.page,
     per_page: searchParams.limit,
     last_page: 1,
-    total: 0
+    total: 0,
+    error: null
   }
 
   const queryString = buildQueryString(searchParams)
@@ -44,17 +71,26 @@ export async function fetchDataFasilitas(params = {}) {
     })
 
     if (!response.ok) {
-      return fallbackResponse
+      const errorDetail = await parseServerError(response)
+
+      return {
+        ...fallbackResponse,
+        error: `Terjadi kesalahan pada server API (status ${response.status}). ${errorDetail}`
+      }
     }
 
     const payload = await response.json()
     const responseData = payload?.response ?? payload
 
     if (!responseData) {
-      return fallbackResponse
+      return {
+        ...fallbackResponse,
+        error: 'Server API tidak mengembalikan data yang valid.'
+      }
     }
 
     const perPage = Number(responseData.per_page ?? searchParams.limit)
+
     const totalPages = Number(
       responseData.last_page ??
         responseData.total_pages ??
@@ -66,11 +102,22 @@ export async function fetchDataFasilitas(params = {}) {
       current_page: Number(responseData.current_page ?? searchParams.page),
       per_page: perPage,
       last_page: totalPages,
-      total: Number(responseData.total ?? responseData.data?.length ?? 0)
+      total: Number(responseData.total ?? responseData.data?.length ?? 0),
+      error: null
     }
   } catch (error) {
     console.error('Error fetching fasilitas:', error)
 
-    return fallbackResponse
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : typeof error === 'string'
+          ? error
+          : 'Terjadi kesalahan yang tidak diketahui.'
+
+    return {
+      ...fallbackResponse,
+      error: `Gagal memuat data dari server aplikasi. ${errorMessage}`
+    }
   }
 }

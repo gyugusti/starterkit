@@ -23,10 +23,13 @@ const Page = async ({ searchParams }) => {
   const data = response?.data ?? []
   const currentPage = Number(response?.current_page ?? page)
   const perPage = Number(response?.per_page ?? limit)
+
   const totalPages = Number(
     response?.last_page ??
       (response?.total && perPage ? Math.ceil(response.total / perPage) : 1)
   )
+
+  const errorMessage = response?.error ?? null
 
   return (
     <FasilitasTable
@@ -34,6 +37,7 @@ const Page = async ({ searchParams }) => {
       currentPage={currentPage}
       perPage={perPage}
       totalPages={totalPages}
+      errorMessage={errorMessage}
     />
   )
 }
