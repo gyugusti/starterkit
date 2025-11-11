@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 // Next Imports
 import { useRouter } from 'next/navigation'
@@ -75,6 +75,7 @@ const LoginV2 = ({ mode }) => {
 
   // Hooks
   const router = useRouter()
+  const { status } = useSession()
   const { settings } = useSettings()
   const theme = useTheme()
   const hidden = useMediaQuery(theme.breakpoints.down('md'))
@@ -87,6 +88,12 @@ const LoginV2 = ({ mode }) => {
     borderedLightIllustration,
     borderedDarkIllustration
   )
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      router.replace('/')
+    }
+  }, [router, status])
 
   const handleClickShowPassword = () => setIsPasswordShown(show => !show)
 
