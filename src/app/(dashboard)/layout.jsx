@@ -1,3 +1,9 @@
+// Next Imports
+import { redirect } from 'next/navigation'
+
+// Auth Imports
+import { getServerSession } from 'next-auth'
+
 // MUI Imports
 import Button from '@mui/material/Button'
 
@@ -18,11 +24,21 @@ import ScrollToTop from '@core/components/scroll-to-top'
 // Util Imports
 import { getMode, getSystemMode } from '@core/utils/serverHelpers'
 
+// Auth Imports
+import { authOptions } from '@/lib/auth/options'
+
 const Layout = async props => {
   const { children } = props
 
   // Vars
   const direction = 'ltr'
+
+  const session = await getServerSession(authOptions)
+
+  if (!session) {
+    redirect('/login')
+  }
+
   const mode = await getMode()
   const systemMode = await getSystemMode()
 
