@@ -3,19 +3,22 @@ import { VerticalNavProvider } from '@menu/contexts/verticalNavContext'
 import { SettingsProvider } from '@core/contexts/settingsContext'
 import ThemeProvider from '@components/theme'
 
+// Auth Imports
+import AuthProvider from '@components/auth/AuthProvider'
+
 // Util Imports
 import { getMode, getSettingsFromCookie, getSystemMode } from '@core/utils/serverHelpers'
 
 const Providers = async props => {
   // Props
-  const { children, direction } = props
+  const { children, direction, withAuth = true } = props
 
   // Vars
   const mode = await getMode()
   const settingsCookie = await getSettingsFromCookie()
   const systemMode = await getSystemMode()
 
-  return (
+  const content = (
     <VerticalNavProvider>
       <SettingsProvider settingsCookie={settingsCookie} mode={mode}>
         <ThemeProvider direction={direction} systemMode={systemMode}>
@@ -24,6 +27,12 @@ const Providers = async props => {
       </SettingsProvider>
     </VerticalNavProvider>
   )
+
+  if (!withAuth) {
+    return content
+  }
+
+  return <AuthProvider>{content}</AuthProvider>
 }
 
 export default Providers
