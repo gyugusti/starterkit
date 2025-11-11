@@ -6,10 +6,12 @@ import { fetchDataFasilitas } from './server'
 const DEFAULT_LIMIT = 20
 
 const Page = async ({ searchParams }) => {
-  const page = Number(searchParams?.page) || 1
-  const limit = Number(searchParams?.limit) || DEFAULT_LIMIT
-  const fasId = searchParams?.fas_id ?? ''
-  const cari = searchParams?.cari ?? ''
+  const resolvedSearchParams = await searchParams
+
+  const page = Number(resolvedSearchParams?.page) || 1
+  const limit = Number(resolvedSearchParams?.limit) || DEFAULT_LIMIT
+  const fasId = resolvedSearchParams?.fas_id ?? ''
+  const cari = resolvedSearchParams?.cari ?? ''
 
   const response = await fetchDataFasilitas({
     page,
