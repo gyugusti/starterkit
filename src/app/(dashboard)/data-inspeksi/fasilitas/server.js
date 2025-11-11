@@ -21,13 +21,7 @@ const parseServerError = async response => {
     if (contentType?.includes('application/json')) {
       const body = await response.json()
 
-      return (
-        body?.message ||
-        body?.error ||
-        body?.response?.message ||
-        body?.response?.error ||
-        JSON.stringify(body)
-      )
+      return body?.message || body?.error || body?.response?.message || body?.response?.error || JSON.stringify(body)
     }
 
     const textBody = await response.text()
@@ -58,7 +52,7 @@ export async function fetchDataFasilitas(params = {}) {
   }
 
   const queryString = buildQueryString(searchParams)
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || ''
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || ''
   const url = `${baseUrl}/api/data/fasilitas${queryString ? `?${queryString}` : ''}`
 
   try {
