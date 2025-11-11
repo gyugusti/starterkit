@@ -11,24 +11,28 @@ import { getMode, getSettingsFromCookie, getSystemMode } from '@core/utils/serve
 
 const Providers = async props => {
   // Props
-  const { children, direction } = props
+  const { children, direction, withAuth = true } = props
 
   // Vars
   const mode = await getMode()
   const settingsCookie = await getSettingsFromCookie()
   const systemMode = await getSystemMode()
 
-  return (
-    <AuthProvider>
-      <VerticalNavProvider>
-        <SettingsProvider settingsCookie={settingsCookie} mode={mode}>
-          <ThemeProvider direction={direction} systemMode={systemMode}>
-            {children}
-          </ThemeProvider>
-        </SettingsProvider>
-      </VerticalNavProvider>
-    </AuthProvider>
+  const content = (
+    <VerticalNavProvider>
+      <SettingsProvider settingsCookie={settingsCookie} mode={mode}>
+        <ThemeProvider direction={direction} systemMode={systemMode}>
+          {children}
+        </ThemeProvider>
+      </SettingsProvider>
+    </VerticalNavProvider>
   )
+
+  if (!withAuth) {
+    return content
+  }
+
+  return <AuthProvider>{content}</AuthProvider>
 }
 
 export default Providers

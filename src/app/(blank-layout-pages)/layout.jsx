@@ -13,7 +13,7 @@ const Layout = async props => {
   const systemMode = await getSystemMode()
 
   return (
-    <Providers direction={direction}>
+    <Providers direction={direction} withAuth={false}>
       <BlankLayout systemMode={systemMode}>{children}</BlankLayout>
     </Providers>
   )
